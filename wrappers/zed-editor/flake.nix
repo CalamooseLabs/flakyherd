@@ -12,7 +12,7 @@
     in
     {
       packages.x86_64-linux = {
-        zed-editor = { args ? { zedSettings = {}; } }: pkgs.stdenv.mkDerivation {
+        zed-editor = settings: pkgs.stdenv.mkDerivation {
           name = "zed-editor";
           buildInputs = [ pkgs.makeWrapper pkgs.jq pkgs.zed-editor ];
           installPhase = ''
@@ -20,7 +20,7 @@
 
             # Create the zed wrapper with inline configuration
             makeWrapper ${pkgs.zed-editor}/bin/zeditor $out/bin/zeditor \
-              --set OVERRIDE_SETTINGS "${builtins.toJSON args.zedSettings}" \
+              --set OVERRIDE_SETTINGS "${builtins.toJSON settings}" \
               --run '
                 ZED_CONFIG=".config/zed"
                 SETTINGS_PATH="$HOME/$ZED_CONFIG"
