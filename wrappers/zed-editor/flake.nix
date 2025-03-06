@@ -27,6 +27,7 @@
             mkdir -p "$TEMP_DIR/.config/zed"
 
             cat ${defaultSettings}
+            echo ""
 
             # Copy the default settings to the temp directory and make it writable
             cp ${defaultSettings} "$TEMP_DIR/.config/zed/settings.json"
@@ -58,7 +59,7 @@
             trap "rm -rf \"$TEMP_DIR\"" EXIT
 
             # Run the actual Zed editor
-            exec $XDG_CONFIG_HOME="$TEMP_DIR/.config" {pkgs.zed-editor}/bin/zeditor "$@"
+            exec XDG_CONFIG_HOME="$TEMP_DIR/.config" {pkgs.zed-editor}/bin/zeditor "$@"
           '';
 
         # Set the default package to be a wrapper with empty settings
