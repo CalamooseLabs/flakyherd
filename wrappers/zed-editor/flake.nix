@@ -1,4 +1,3 @@
-
 {
   description = "Zed Editor with local configurations";
 
@@ -12,14 +11,13 @@
     in
     {
       packages.x86_64-linux = {
-        zed-editor = settings: pkgs.stdenv.mkDerivation {
-          name = "zed-editor";
+        default = settings: pkgs.lib.mkShell {
           buildInputs = [ pkgs.makeWrapper pkgs.jq pkgs.zed-editor ];
-          installPhase = ''
+          shellHook = ''
             mkdir -p $out/bin
 
             # Create the zed wrapper with inline configuration
-            makeWrapper ${pkgs.zed-editor}/bin/zeditor $out/bin/zeditor \
+            makeWrapper ${nixpkgs.zed-editor}/bin/zeditor $out/bin/zeditor \
               --set OVERRIDE_SETTINGS "${builtins.toJSON settings}" \
               --run '
                 ZED_CONFIG=".config/zed"
@@ -34,10 +32,10 @@
 
                 TEMP_FILE=$(mktemp)
 
-                echo "$OVERRIDE_SETTINGS" | ${pkgs.jq}/bin/jq "." > "$TEMP_FILE"
+                echo "$OVERRIDE_SETTINGS" | ${nixpkgs.jq}/bin/jq "." > "$TEMP_FILE"
 
                 if [ -f "$SETTINGS_PATH/settings.json" ]; then
-                  ${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$SETTINGS_PATH/settings.json" "$TEMP_FILE" > "$OVERRIDE_PATH/settings.json"
+                  ${nixpkgs.jq}/bin/jq -s ".[0] * .[1]" "$SETTINGS_PATH/settings.json" "$TEMP_FILE" > "$OVERRIDE_PATH/settings.json"
                 else
                   cp "$TEMP_FILE" "$OVERRIDE_PATH/settings.json"
                 fi
