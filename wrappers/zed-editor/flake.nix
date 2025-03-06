@@ -20,12 +20,22 @@
 
           buildInputs = [ pkgs.makeWrapper pkgs.jq pkgs.zed-editor ];
 
+          # Convert settings to JSON and properly escape it for the shell
+          settingsJson = pkgs.writeTextFile {
+            name = "zed-settings.json";
+            text = builtins.toJSON settings;
+          };
+
           installPhase = ''
             mkdir -p $out/bin
+            mkdir -p $out/.config/zed
+
+            # Copy the settings file to the build directory
+            cp ${settingsJson} $out/.config/zed/settings.json
 
             # Create the zed wrapper with inline configuration
             makeWrapper ${pkgs.zed-editor}/bin/zeditor $out/bin/zeditor \
-              --set OVERRIDE_SETTINGS "${builtins.toJSON settings}" \
+              --set XDG_CONFIG_HOME "$out/.config" \
               --run '
                 ZED_CONFIG=".config/zed"
                 SETTINGS_PATH="$HOME/$ZED_CONFIG"
@@ -37,25 +47,16 @@
                   cp -r "$SETTINGS_PATH/themes" "$OVERRIDE_PATH"
                 fi
 
-                TEMP_FILE=$(mktemp)
-echo "$OVERRIDE_SETTINGS" | ${pkgs.jq}/bin/jq "."
-                echo "$OVERRIDE_SETTINGS" | ${pkgs.jq}/bin/jq "." > "$TEMP_FILE"
-${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$SETTINGS_PATH/settings.json" "$TEMP_FILE"
                 if [ -f "$SETTINGS_PATH/settings.json" ]; then
-                  ${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$SETTINGS_PATH/settings.json" "$TEMP_FILE" > "$OVERRIDE_PATH/settings.json"
-                else
-                  cp "$TEMP_FILE" "$OVERRIDE_PATH/settings.json"
+                  ${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$SETTINGS_PATH/settings.json" "$OVERRIDE_PATH/settings.json" > "$OVERRIDE_PATH/settings.json.new"
+                  mv "$OVERRIDE_PATH/settings.json.new" "$OVERRIDE_PATH/settings.json"
                 fi
-
-                rm "$TEMP_FILE"
-
-                export XDG_CONFIG_HOME="$out/.config"
               '
           '';
         };
 
         # Set the default package to be a wrapper with empty settings
-        default = zed-wrapper {};
+        default = zed-wrapper;
       };
     };
 }
