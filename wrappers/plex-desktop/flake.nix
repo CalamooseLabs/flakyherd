@@ -17,8 +17,6 @@
               --set QT_STYLE_OVERRIDE ""
           '';
         };
-
-        default = plex-desktop;
       };
     };
 }
