@@ -10,14 +10,21 @@
       pkgs = import nixpkgs { system = "x86_64-linux"; };
     in
     {
-      packages.x86_64-linux = {
-        default = settings: pkgs.lib.mkShell {
+      packages.x86_64-linux = rec {
+        zed-wrapper = settings: pkgs.stdenv.mkDerivation {
+          pname = "zed-editor-wrapper";
+          version = "1.0.0";
+
+          # Add an empty src to satisfy the requirement
+          src = pkgs.emptyDirectory;
+
           buildInputs = [ pkgs.makeWrapper pkgs.jq pkgs.zed-editor ];
-          shellHook = ''
+
+          installPhase = ''
             mkdir -p $out/bin
 
             # Create the zed wrapper with inline configuration
-            makeWrapper ${nixpkgs.zed-editor}/bin/zeditor $out/bin/zeditor \
+            makeWrapper ${pkgs.zed-editor}/bin/zeditor $out/bin/zeditor \
               --set OVERRIDE_SETTINGS "${builtins.toJSON settings}" \
               --run '
                 ZED_CONFIG=".config/zed"
@@ -32,10 +39,10 @@
 
                 TEMP_FILE=$(mktemp)
 
-                echo "$OVERRIDE_SETTINGS" | ${nixpkgs.jq}/bin/jq "." > "$TEMP_FILE"
+                echo "$OVERRIDE_SETTINGS" | ${pkgs.jq}/bin/jq "." > "$TEMP_FILE"
 
                 if [ -f "$SETTINGS_PATH/settings.json" ]; then
-                  ${nixpkgs.jq}/bin/jq -s ".[0] * .[1]" "$SETTINGS_PATH/settings.json" "$TEMP_FILE" > "$OVERRIDE_PATH/settings.json"
+                  ${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$SETTINGS_PATH/settings.json" "$TEMP_FILE" > "$OVERRIDE_PATH/settings.json"
                 else
                   cp "$TEMP_FILE" "$OVERRIDE_PATH/settings.json"
                 fi
@@ -46,6 +53,9 @@
               '
           '';
         };
+
+        # Set the default package to be a wrapper with empty settings
+        default = zed-wrapper {};
       };
     };
 }
