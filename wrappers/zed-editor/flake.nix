@@ -46,8 +46,6 @@
               '
           '';
         };
-
-        default = zed-editor;
       };
     };
 }
