@@ -39,20 +39,28 @@
               makeWrapper ${pkgs.zed-editor}/bin/zeditor $out/bin/zeditor \
                 --set XDG_CONFIG_HOME "$out/.config" \
                 --run '
-                  ZED_CONFIG=".config/zed"
-                  SETTINGS_PATH="$HOME/$ZED_CONFIG"
-                  OVERRIDE_PATH="$out/$ZED_CONFIG"
+                  # Create a temporary directory for merged settings
+                  TEMP_DIR=$(mktemp -d)
+                  TEMP_SETTINGS="$TEMP_DIR/settings.json"
 
-                  mkdir -p "$OVERRIDE_PATH"
+                  # Copy our base settings to the temp location
+                  cp "$XDG_CONFIG_HOME/zed/settings.json" "$TEMP_SETTINGS"
 
-                  if [ -d "$SETTINGS_PATH/themes" ]; then
-                    cp -r "$SETTINGS_PATH/themes" "$OVERRIDE_PATH"
+                  # If user has custom settings, merge them
+                  USER_SETTINGS="$HOME/.config/zed/settings.json"
+                  if [ -f "$USER_SETTINGS" ]; then
+                    ${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$TEMP_SETTINGS" "$USER_SETTINGS" > "$TEMP_DIR/merged.json"
+                    mv "$TEMP_DIR/merged.json" "$TEMP_SETTINGS"
                   fi
 
-                  if [ -f "$SETTINGS_PATH/settings.json" ]; then
-                    ${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$SETTINGS_PATH/settings.json" "$OVERRIDE_PATH/settings.json" > "$OVERRIDE_PATH/settings.json.new"
-                    mv "$OVERRIDE_PATH/settings.json.new" "$OVERRIDE_PATH/settings.json"
+                  # Copy any user themes if they exist
+                  if [ -d "$HOME/.config/zed/themes" ]; then
+                    mkdir -p "$XDG_CONFIG_HOME/zed/themes"
+                    cp -r "$HOME/.config/zed/themes"/* "$XDG_CONFIG_HOME/zed/themes/" 2>/dev/null || true
                   fi
+
+                  # Use the temporary settings file for this session
+                  export ZED_SETTINGS_PATH="$TEMP_SETTINGS"
                 '
             '';
           };
