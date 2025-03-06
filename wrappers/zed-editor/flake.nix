@@ -24,14 +24,17 @@
             TEMP_DIR=$(mktemp -d)
             mkdir -p "$TEMP_DIR/zed"
 
-            # Copy the default settings to the temp directory
+            # Copy the default settings to the temp directory and make it writable
             cp ${defaultSettings} "$TEMP_DIR/zed/settings.json"
+            chmod 644 "$TEMP_DIR/zed/settings.json"
 
             # If user has custom settings, merge them
             USER_SETTINGS="$HOME/.config/zed/settings.json"
             if [ -f "$USER_SETTINGS" ]; then
               ${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$TEMP_DIR/zed/settings.json" "$USER_SETTINGS" > "$TEMP_DIR/zed/merged.json"
-              mv "$TEMP_DIR/zed/merged.json" "$TEMP_DIR/zed/settings.json"
+              chmod 644 "$TEMP_DIR/zed/merged.json"
+              cp "$TEMP_DIR/zed/merged.json" "$TEMP_DIR/zed/settings.json"
+              rm "$TEMP_DIR/zed/merged.json"
             fi
 
             # Copy any user themes if they exist
