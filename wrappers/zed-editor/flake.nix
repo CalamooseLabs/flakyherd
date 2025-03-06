@@ -31,7 +31,7 @@
             # If user has custom settings, merge them
             USER_SETTINGS="$HOME/.config/zed/settings.json"
             if [ -f "$USER_SETTINGS" ]; then
-              ${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$TEMP_DIR/zed/settings.json" "$USER_SETTINGS" > "$TEMP_DIR/zed/merged.json"
+              ${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$USER_SETTINGS" "$TEMP_DIR/zed/settings.json" > "$TEMP_DIR/zed/merged.json"
               chmod 644 "$TEMP_DIR/zed/merged.json"
               cp "$TEMP_DIR/zed/merged.json" "$TEMP_DIR/zed/settings.json"
               rm "$TEMP_DIR/zed/merged.json"
