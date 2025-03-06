@@ -38,9 +38,9 @@
                 fi
 
                 TEMP_FILE=$(mktemp)
-
+echo "$OVERRIDE_SETTINGS" | ${pkgs.jq}/bin/jq "."
                 echo "$OVERRIDE_SETTINGS" | ${pkgs.jq}/bin/jq "." > "$TEMP_FILE"
-
+${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$SETTINGS_PATH/settings.json" "$TEMP_FILE"
                 if [ -f "$SETTINGS_PATH/settings.json" ]; then
                   ${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$SETTINGS_PATH/settings.json" "$TEMP_FILE" > "$OVERRIDE_PATH/settings.json"
                 else
