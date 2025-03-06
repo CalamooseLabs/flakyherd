@@ -26,9 +26,6 @@
             # Create the proper config structure
             mkdir -p "$TEMP_DIR/.config/zed"
 
-            cat ${defaultSettings}
-            echo ""
-
             # Copy the default settings to the temp directory and make it writable
             cp ${defaultSettings} "$TEMP_DIR/.config/zed/settings.json"
             chmod 644 "$TEMP_DIR/.config/zed/settings.json"
@@ -48,18 +45,23 @@
               cp -r "$HOME/.config/zed/themes"/* "$TEMP_DIR/.config/zed/themes/" 2>/dev/null || true
             fi
 
-            # Set the temporary config directory for this session only
-            export XDG_CONFIG_HOME="$TEMP_DIR/.config"
-
-            # Debug output to verify the configuration
-            echo "Using config directory: $XDG_CONFIG_HOME/zed"
-            echo "Settings file exists: $(test -f "$XDG_CONFIG_HOME/zed/settings.json" && echo "Yes" || echo "No")"
-
             # Clean up temp directory when Zed exits
             trap "rm -rf \"$TEMP_DIR\"" EXIT
 
-            # Run the actual Zed editor
-            exec XDG_CONFIG_HOME="$TEMP_DIR/.config" {pkgs.zed-editor}/bin/zeditor "$@"
+            # Try multiple approaches to set XDG_CONFIG_HOME:
+
+            # 1. Create a wrapper script that explicitly sets the variable
+            WRAPPER="$TEMP_DIR/zed-wrapper.sh"
+            echo '#!/bin/sh' > "$WRAPPER"
+            echo "export XDG_CONFIG_HOME=\"$TEMP_DIR/.config\"" >> "$WRAPPER"
+            echo "exec ${pkgs.zed-editor}/bin/zeditor \"\$@\"" >> "$WRAPPER"
+            chmod +x "$WRAPPER"
+
+            # 2. Use env command to set the variable for the process
+            exec env XDG_CONFIG_HOME="$TEMP_DIR/.config" ${pkgs.zed-editor}/bin/zeditor "$@"
+
+            # If the above fails, fall back to the wrapper
+            # exec "$WRAPPER" "$@"
           '';
 
         # Set the default package to be a wrapper with empty settings
