@@ -41,16 +41,16 @@
                 --run '
                   # Create a temporary directory for merged settings
                   TEMP_DIR=$(mktemp -d)
-                  TEMP_SETTINGS="$TEMP_DIR/settings.json"
 
-                  # Copy our base settings to the temp location
-                  cp "$XDG_CONFIG_HOME/zed/settings.json" "$TEMP_SETTINGS"
+                  # Copy our base settings to the temp location with write permissions
+                  cp "$XDG_CONFIG_HOME/zed/settings.json" "$TEMP_DIR/settings.json"
+                  chmod 644 "$TEMP_DIR/settings.json"
 
                   # If user has custom settings, merge them
                   USER_SETTINGS="$HOME/.config/zed/settings.json"
                   if [ -f "$USER_SETTINGS" ]; then
-                    ${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$TEMP_SETTINGS" "$USER_SETTINGS" > "$TEMP_DIR/merged.json"
-                    mv "$TEMP_DIR/merged.json" "$TEMP_SETTINGS"
+                    ${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$TEMP_DIR/settings.json" "$USER_SETTINGS" > "$TEMP_DIR/merged.json"
+                    cp "$TEMP_DIR/merged.json" "$TEMP_DIR/settings.json"
                   fi
 
                   # Copy any user themes if they exist
@@ -59,8 +59,13 @@
                     cp -r "$HOME/.config/zed/themes"/* "$XDG_CONFIG_HOME/zed/themes/" 2>/dev/null || true
                   fi
 
-                  # Use the temporary settings file for this session
-                  export ZED_SETTINGS_PATH="$TEMP_SETTINGS"
+                  # Point Zed to our temporary config directory
+                  export XDG_CONFIG_HOME="$TEMP_DIR"
+                  mkdir -p "$TEMP_DIR/zed"
+                  mv "$TEMP_DIR/settings.json" "$TEMP_DIR/zed/"
+
+                  # Clean up temp directory when Zed exits
+                  trap "rm -rf \"$TEMP_DIR\"" EXIT
                 '
             '';
           };
