@@ -58,10 +58,10 @@
             chmod +x "$WRAPPER"
 
             # 2. Use env command to set the variable for the process
-            exec env XDG_CONFIG_HOME="$TEMP_DIR/.config" ${pkgs.zed-editor}/bin/zeditor "$@"
+            # exec env XDG_CONFIG_HOME="$TEMP_DIR/.config" ${pkgs.zed-editor}/bin/zeditor "$@"
 
             # If the above fails, fall back to the wrapper
-            # exec "$WRAPPER" "$@"
+             exec "$WRAPPER" "$@"
           '';
 
         # Set the default package to be a wrapper with empty settings
