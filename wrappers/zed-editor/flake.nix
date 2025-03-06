@@ -13,65 +13,45 @@
       packages.x86_64-linux = rec {
         zed-wrapper = settings:
           let
-            # Create the settings JSON file
+            # Create the settings JSON file outside the derivation
             defaultSettings = pkgs.writeTextFile {
               name = "default-settings.json";
               text = builtins.toJSON settings;
             };
-
-            # Create a script to prepare the config
-            setupScript = pkgs.writeShellScript "setup-zed-config" ''
-              # Create a temporary directory for this session
-              TEMP_DIR=$(mktemp -d)
-
-              # Create the proper config structure
-              mkdir -p "$TEMP_DIR/zed"
-
-              # Copy the default settings to the temp directory
-              cp ${defaultSettings} "$TEMP_DIR/zed/settings.json"
-              chmod 644 "$TEMP_DIR/zed/settings.json"
-
-              # If user has custom settings, merge them
-              USER_SETTINGS="$HOME/.config/zed/settings.json"
-              if [ -f "$USER_SETTINGS" ]; then
-                ${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$TEMP_DIR/zed/settings.json" "$USER_SETTINGS" > "$TEMP_DIR/zed/merged.json"
-                chmod 644 "$TEMP_DIR/zed/merged.json"
-                cp "$TEMP_DIR/zed/merged.json" "$TEMP_DIR/zed/settings.json"
-                rm "$TEMP_DIR/zed/merged.json"
-              fi
-
-              # Copy any user themes if they exist
-              if [ -d "$HOME/.config/zed/themes" ]; then
-                mkdir -p "$TEMP_DIR/zed/themes"
-                cp -r "$HOME/.config/zed/themes"/* "$TEMP_DIR/zed/themes/" 2>/dev/null || true
-              fi
-
-              # Clean up temp directory when shell exits
-              trap "rm -rf \"$TEMP_DIR\"" EXIT
-
-              # Export the config directory
-              echo "$TEMP_DIR"
-            '';
           in
-          pkgs.stdenv.mkDerivation {
-            pname = "zed-editor-wrapper";
-            version = "1.0.0";
+          pkgs.writeShellScriptBin "zeditor" ''
+            # Create a temporary directory for this session
+            TEMP_DIR=$(mktemp -d)
+            mkdir -p "$TEMP_DIR/zed"
 
-            # Add an empty src to satisfy the requirement
-            src = pkgs.emptyDirectory;
+            # Copy the default settings to the temp directory and make it writable
+            cp ${defaultSettings} "$TEMP_DIR/zed/settings.json"
+            chmod 644 "$TEMP_DIR/zed/settings.json"
 
-            nativeBuildInputs = [ pkgs.makeWrapper ];
+            # If user has custom settings, merge them
+            USER_SETTINGS="$HOME/.config/zed/settings.json"
+            if [ -f "$USER_SETTINGS" ]; then
+              ${pkgs.jq}/bin/jq -s ".[0] * .[1]" "$TEMP_DIR/zed/settings.json" "$USER_SETTINGS" > "$TEMP_DIR/zed/merged.json"
+              chmod 644 "$TEMP_DIR/zed/merged.json"
+              cp "$TEMP_DIR/zed/merged.json" "$TEMP_DIR/zed/settings.json"
+              rm "$TEMP_DIR/zed/merged.json"
+            fi
 
-            buildInputs = [ pkgs.zed-editor ];
+            # Copy any user themes if they exist
+            if [ -d "$HOME/.config/zed/themes" ]; then
+              mkdir -p "$TEMP_DIR/zed/themes"
+              cp -r "$HOME/.config/zed/themes"/* "$TEMP_DIR/zed/themes/" 2>/dev/null || true
+            fi
 
-            installPhase = ''
-              mkdir -p $out/bin
+            # Set the temporary config directory for this session only
+            export XDG_CONFIG_HOME="$TEMP_DIR"
 
-              makeWrapper ${pkgs.zed-editor}/bin/zeditor $out/bin/zeditor \
-                --run "export XDG_CONFIG_HOME=\$(${setupScript})" \
-                --set ZED_WRAPPED 1
-            '';
-          };
+            # Clean up temp directory when Zed exits
+            trap "rm -rf \"$TEMP_DIR\"" EXIT
+
+            # Run the actual Zed editor
+            exec ${pkgs.zed-editor}/bin/zeditor "$@"
+          '';
 
         # Set the default package to be a wrapper with empty settings
         default = zed-wrapper {};
