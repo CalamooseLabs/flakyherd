@@ -54,7 +54,7 @@
           '';
 
         # Set the default package to be a wrapper with empty settings
-        default = zed-wrapper {};
+        default = zed-wrapper;
       };
     };
 }

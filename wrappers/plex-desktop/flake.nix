@@ -6,17 +6,18 @@
   };
 
   outputs = { self, nixpkgs, ... }:
-    {
-      packages.x86_64-linux = {
-        plex-desktop = nixpkgs.lib.mkShell {
-          buildInputs = [ nixpkgs.makeWrapper nixpkgs.jq nixpkgs.zed-editor ];
-          shellHook = ''
-            mkdir -p $out/bin
-
-            makeWrapper ${pkgs.plex-desktop}/bin/plex-desktop $out/bin/plex-desktop \
-              --set QT_STYLE_OVERRIDE ""
-          '';
-        };
+    let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs { system = system; };
+    in {
+      packages.${system}.default = pkgs.symlinkJoin {
+        name = "plex-desktop-fixed";
+        paths = [ pkgs.plex-desktop ];
+        buildInputs = [ pkgs.makeWrapper ];
+        postBuild = ''
+          wrapProgram $out/bin/plex-desktop \
+            --set QT_STYLE_OVERRIDE ""
+        '';
       };
     };
 }
