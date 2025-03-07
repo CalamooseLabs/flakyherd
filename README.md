@@ -1,3 +1,9 @@
 # Flaky Herd
 
-A repository of flakes used in different NixOS projects.
+ A repo of different scripts and lambdas, each folder is its own branch that can be referenced for smallers files:
+
+ such that:
+
+ -> master
+ -> flakes
+ ---> flakes.zed-editor
